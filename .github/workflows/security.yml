@@ -1,0 +1,55 @@
+name: Security Analysis
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  dependency-check:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v2
+
+    - name: Set up Java (required for Dependency-Check)
+      uses: actions/setup-java@v2
+      with:
+        java-version: '11'
+
+    - name: Install OWASP Dependency-Check
+      run: |
+        wget https://github.com/jeremylong/DependencyCheck/releases/download/v6.0.3/dependency-check-6.0.3-release.zip
+        unzip dependency-check-6.0.3-release.zip
+        cd dependency-check
+
+    - name: Run OWASP Dependency-Check
+      run: |
+        ./bin/dependency-check.sh --project "My Project" --scan ./ --format HTML
+        mv dependency-check-report.html ./dependency-check-report.html
+        echo "Dependency-Check report generated."
+
+    - name: Upload OWASP Dependency-Check report to GitHub
+      uses: actions/upload-artifact@v2
+      with:
+        name: owasp-dependency-check-report
+        path: dependency-check-report.html
+
+  code-climate:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up CodeClimate
+      run: |
+        gem install codeclimate-test-reporter
+
+    - name: Run CodeClimate
+      run: |
+        CODECLIMATE_REPO_TOKEN=$CODECLIMATE_REPO_TOKEN bundle exec codeclimate analyze
